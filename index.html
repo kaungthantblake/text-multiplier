@@ -187,8 +187,7 @@
           "Liberation Mono", "Courier New", monospace;
         font-size: 13px;
         line-height: 1.4;
-        overflow: scroll;
-        scrollbar-color: transparent transparent;
+        overflow: auto;
       }
 
       .stats {
@@ -234,9 +233,23 @@
             </div>
           </div>
 
+          <!-- Custom options -->
           <div id="customSepWrap" style="margin-top: 12px; display: none">
-            <label for="customSep">Custom separator</label>
-            <input id="customSep" type="text" placeholder="e.g. ---" />
+            <div class="row">
+              <div>
+                <label for="customSep">Custom separator</label>
+                <input id="customSep" type="text" placeholder="e.g. ---" />
+              </div>
+              <div>
+                <label for="startWith">Start with</label>
+                <input id="startWith" type="text" placeholder='e.g. "<li>"' />
+              </div>
+            </div>
+
+            <div style="margin-top: 12px">
+              <label for="endWith">End with</label>
+              <input id="endWith" type="text" placeholder='e.g. "</li>"' />
+            </div>
           </div>
 
           <div class="checks">
@@ -277,6 +290,8 @@
       const sep = document.getElementById("sep");
       const customSepWrap = document.getElementById("customSepWrap");
       const customSep = document.getElementById("customSep");
+      const startWith = document.getElementById("startWith");
+      const endWith = document.getElementById("endWith");
       const trim = document.getElementById("trim");
       const numbering = document.getElementById("numbering");
 
@@ -310,12 +325,17 @@
 
         const separator = getSeparator();
 
-        // LOOPING (required): build output using a loop
+        // Only apply start/end when Custom is selected
+        const prefix = sep.value === "custom" ? (startWith.value || "") : "";
+        const suffix = sep.value === "custom" ? (endWith.value || "") : "";
+
+        // LOOPING: build output using a loop
         let result = "";
         for (let i = 1; i <= n; i++) {
-          const piece = numbering.checked ? `${i}. ${textValue}` : textValue;
-          result += piece;
+          const core = numbering.checked ? `${i}. ${textValue}` : textValue;
+          const piece = `${prefix}${core}${suffix}`;
 
+          result += piece;
           if (i !== n) result += separator;
         }
 
@@ -335,10 +355,13 @@
         multiplyText();
       });
 
-      [txt, count, customSep, trim, numbering].forEach((el) => {
-        el.addEventListener("input", multiplyText);
-        el.addEventListener("change", multiplyText);
-      });
+      // Live update
+      [txt, count, customSep, startWith, endWith, trim, numbering].forEach(
+        (el) => {
+          el.addEventListener("input", multiplyText);
+          el.addEventListener("change", multiplyText);
+        },
+      );
 
       btnMake.addEventListener("click", multiplyText);
 
@@ -356,8 +379,16 @@
       btnClear.addEventListener("click", () => {
         txt.value = "";
         count.value = "0";
+        sep.value = "newline";
+
         customSep.value = "";
+        startWith.value = "";
+        endWith.value = "";
+
+        trim.checked = true;
         numbering.checked = false;
+
+        customSepWrap.style.display = "none";
         out.textContent = "";
         updateStats("");
       });
