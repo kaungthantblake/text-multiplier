@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -20,9 +20,17 @@
 
       body {
         margin: 0;
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
-          Arial, "Apple Color Emoji", "Segoe UI Emoji";
-        background: radial-gradient(1000px 600px at 20% 10%, #1b2a55, transparent),
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          "Apple Color Emoji",
+          "Segoe UI Emoji";
+        background:
+          radial-gradient(1000px 600px at 20% 10%, #1b2a55, transparent),
           radial-gradient(900px 500px at 90% 20%, #2a1b55, transparent),
           var(--bg);
         color: var(--text);
@@ -120,7 +128,6 @@
 
       .checks {
         display: flex;
-        align-items: center;
         gap: 14px;
         flex-wrap: wrap;
         margin-top: 10px;
@@ -154,7 +161,9 @@
         padding: 10px 12px;
         border-radius: 12px;
         cursor: pointer;
-        transition: transform 0.05s ease, background 0.15s ease;
+        transition:
+          transform 0.05s ease,
+          background 0.15s ease;
       }
 
       button:hover {
@@ -183,11 +192,13 @@
         max-height: 240px;
         white-space: pre-wrap;
         word-break: break-word;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", "Courier New", monospace;
         font-size: 13px;
         line-height: 1.4;
         overflow: auto;
+        scrollbar-color: transparent transparent;
       }
 
       .stats {
@@ -227,8 +238,30 @@
                 <option value="newline">New line</option>
                 <option value="space">Space</option>
                 <option value=", ">, (comma + space)</option>
-                <option value=" | "> | (pipe)</option>
+                <option value=" | ">| (pipe)</option>
                 <option value="custom">Custom…</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top: 12px">
+            <div>
+              <label for="transform">Text Style</label>
+              <select id="transform">
+                <option value="none">Normal</option>
+                <option value="upper">UPPERCASE</option>
+                <option value="lower">lowercase</option>
+                <option value="alternating">AlTeRnAtInG</option>
+                <option value="reverse">esreveR</option>
+              </select>
+            </div>
+            <div>
+              <label for="border">Border / Frame</label>
+              <select id="border">
+                <option value="none">None</option>
+                <option value="ascii">ASCII Box (Single)</option>
+                <option value="double">ASCII Box (Double)</option>
+                <option value="dots">Dotted Box</option>
               </select>
             </div>
           </div>
@@ -262,6 +295,38 @@
               <input id="numbering" type="checkbox" />
               Add numbering (1., 2., 3.)
             </label>
+
+            <label class="check">
+              <input id="enableWave" type="checkbox" />
+              Wave effect
+            </label>
+          </div>
+
+          <!-- Wave options -->
+          <div
+            id="waveOptions"
+            style="
+              margin-top: 12px;
+              padding: 12px;
+              background: rgba(255, 255, 255, 0.03);
+              border-radius: 12px;
+              display: none;
+            "
+          >
+            <div class="row">
+              <div>
+                <label for="waveType">Wave Type</label>
+                <select id="waveType">
+                  <option value="triangle">Triangle (ZigZag)</option>
+                  <option value="sine">Sine Wave</option>
+                  <option value="square">Square</option>
+                </select>
+              </div>
+              <div>
+                <label for="amplitude">Amplitude (spaces)</label>
+                <input id="amplitude" type="number" min="1" value="10" />
+              </div>
+            </div>
           </div>
 
           <div class="actions">
@@ -294,6 +359,12 @@
       const endWith = document.getElementById("endWith");
       const trim = document.getElementById("trim");
       const numbering = document.getElementById("numbering");
+      const enableWave = document.getElementById("enableWave");
+      const waveOptions = document.getElementById("waveOptions");
+      const waveType = document.getElementById("waveType");
+      const amplitude = document.getElementById("amplitude");
+      const transform = document.getElementById("transform");
+      const border = document.getElementById("border");
 
       const out = document.getElementById("out");
       const statLines = document.getElementById("statLines");
@@ -316,6 +387,20 @@
 
         if (trim.checked) textValue = textValue.trim();
 
+        // 1. Transformations
+        if (transform.value === "upper") {
+          textValue = textValue.toUpperCase();
+        } else if (transform.value === "lower") {
+          textValue = textValue.toLowerCase();
+        } else if (transform.value === "reverse") {
+          textValue = textValue.split("").reverse().join("");
+        } else if (transform.value === "alternating") {
+          textValue = textValue
+            .split("")
+            .map((c, i) => (i % 2 === 0 ? c.toUpperCase() : c.toLowerCase()))
+            .join("");
+        }
+
         // If empty text or zero, show nothing
         if (!textValue || n === 0) {
           out.textContent = "";
@@ -326,21 +411,88 @@
         const separator = getSeparator();
 
         // Only apply start/end when Custom is selected
-        const prefix = sep.value === "custom" ? (startWith.value || "") : "";
-        const suffix = sep.value === "custom" ? (endWith.value || "") : "";
+        const prefix = sep.value === "custom" ? startWith.value || "" : "";
+        const suffix = sep.value === "custom" ? endWith.value || "" : "";
 
         // LOOPING: build output using a loop
         let result = "";
+        const doWave = enableWave.checked;
+        const amp = Math.max(1, parseInt(amplitude.value || "0", 10));
+        const wType = waveType.value;
+
         for (let i = 1; i <= n; i++) {
-          const core = numbering.checked ? `${i}. ${textValue}` : textValue;
+          let core = numbering.checked ? `${i}. ${textValue}` : textValue;
+
+          if (doWave) {
+            const idx = i - 1;
+            let indent = 0;
+            if (wType === "triangle") {
+              // Slope 1
+              const period = amp * 2;
+              const mod = idx % period;
+              indent = mod > amp ? period - mod : mod;
+            } else if (wType === "square") {
+              const period = amp * 2;
+              indent = idx % period < amp ? 0 : amp;
+            } else {
+              // Sine
+              // Cycle over 2*amp lines roughly? or fixed?
+              // Let's use period = amp * 2 to keep it consistent
+              const period = amp * 2;
+              // map 0..period to 0..2PI
+              const theta = (idx / period) * 2 * Math.PI;
+              // sin is -1..1 -> map to 0..1 -> scale to amp
+              indent = Math.round(((Math.sin(theta) + 1) / 2) * amp);
+            }
+            const spaces = " ".repeat(indent);
+            // Apply to core
+            core = spaces + core;
+          }
+
           const piece = `${prefix}${core}${suffix}`;
 
           result += piece;
           if (i !== n) result += separator;
         }
 
+        // Limit loops to prevent browser crash if amplitude/wave makes lines huge or N is massive
+        if (result.length > 500000) {
+          result = result.substring(0, 500000) + "\n... (truncated)";
+        }
+
+        // 3. Borders (Post-processing)
+        if (border.value !== "none" && result.trim().length > 0) {
+          result = applyBorder(result, border.value);
+        }
+
         out.textContent = result;
         updateStats(result);
+      }
+
+      function applyBorder(text, mode) {
+        const lines = text.split("\n");
+        let maxLen = 0;
+        lines.forEach((l) => {
+          if (l.length > maxLen) maxLen = l.length;
+        });
+
+        let chars = { tl: "+", tr: "+", bl: "+", br: "+", h: "-", v: "|" };
+        if (mode === "double")
+          chars = { tl: "╔", tr: "╗", bl: "╚", br: "╝", h: "═", v: "║" };
+        if (mode === "dots")
+          chars = { tl: ".", tr: ".", bl: ".", br: ".", h: ".", v: ":" };
+
+        const top = chars.tl + chars.h.repeat(maxLen + 2) + chars.tr;
+        const bottom = chars.bl + chars.h.repeat(maxLen + 2) + chars.br;
+
+        const body = lines
+          .map((line) => {
+            const pad = " ".repeat(maxLen - line.length);
+            return `${chars.v} ${line}${pad} ${chars.v}`;
+          })
+          .join("\n");
+
+        return `${top}\n${body}\n${bottom}`;
       }
 
       function updateStats(s) {
@@ -355,13 +507,28 @@
         multiplyText();
       });
 
+      enableWave.addEventListener("change", () => {
+        waveOptions.style.display = enableWave.checked ? "block" : "none";
+        multiplyText();
+      });
+
       // Live update
-      [txt, count, customSep, startWith, endWith, trim, numbering].forEach(
-        (el) => {
-          el.addEventListener("input", multiplyText);
-          el.addEventListener("change", multiplyText);
-        },
-      );
+      [
+        txt,
+        count,
+        customSep,
+        startWith,
+        endWith,
+        trim,
+        numbering,
+        waveType,
+        amplitude,
+        transform,
+        border,
+      ].forEach((el) => {
+        el.addEventListener("input", multiplyText);
+        el.addEventListener("change", multiplyText);
+      });
 
       btnMake.addEventListener("click", multiplyText);
 
